@@ -45,13 +45,9 @@ PresentX streamlines attendance, grades, timetable, syllabus, and announcements 
 
 > Sample UI from the app (assets included in this repo)
 
-| Dashboard | Timetable | Syllabus |
+| Student | Teacher | Admin |
 | --- | --- | --- |
-| <img src="assets/images/students.png" width="260"/> | <img src="assets/images/timetable.png" width="260"/> | <img src="assets/images/syllabus.png" width="260"/> |
-
-| Events | Exam Marks | Profile |
-| --- | --- | --- |
-| <img src="assets/images/events.jpg" width="260"/> | <img src="assets/images/examMarks.jpg" width="260"/> | <img src="assets/images/profile.png" width="260"/> |
+| <img src="assets/images/students1.png" width="260"/> | <img src="assets/images/teachers.png" width="260"/> | <img src="assets/images/admin.png" width="260"/> |
 
 ## Tech Stack
 - Flutter (Dart)
