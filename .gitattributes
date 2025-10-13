@@ -1,0 +1,8 @@
+# Force GitHub to recognize this as a Dart/Flutter project
+*.dart linguist-language=Dart
+*.yaml linguist-language=YAML
+*.yml linguist-language=YAML
+
+# Exclude build artifacts from language detection
+android/ build/ ios/ linux/ macos/ web/ windows/ linguist-vendored
+*.iml linguist-vendored
