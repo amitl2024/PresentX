@@ -1,8 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:flutter/material.dart';
-import 'package:present_x/student/home.dart';
+import 'package:provider/provider.dart';
+import 'package:present_x/providers/auth_provider.dart';
 import 'package:present_x/signup.dart';
 
 class LoginPage extends StatefulWidget {
@@ -25,46 +23,37 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> signInWithEmailAndPassword() async {
-    try {
-      final userCredential = await FirebaseAuth.instance
-          .signInWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
-          );
-      final uid = userCredential.user!.uid;
+  Future<void> signIn() async {
+    if (!formKey.currentState!.validate()) return;
 
-      // Fetch user role from Firestore
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.signIn(
+      emailController.text.trim(),
+      passwordController.text.trim(),
+    );
 
-      Navigator.pushReplacementNamed(context, '/');
-    } on FirebaseAuthException catch (e) {
-      String message = "";
-
-      // 🔍 Customize error messages based on error codes
-      if (e.code == 'user-not-found') {
-        message = "No user found with this email.";
-      } else if (e.code == 'wrong-password') {
-        message = "Incorrect password.";
-      } else if (e.code == 'invalid-email') {
-        message = "Invalid email address.";
-      } else {
-        message = "Login failed. Please try again.";
+    if (success) {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/');
       }
-
-      // 🔔 Show a snackbar with the error message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: Colors.redAccent,
-          duration: Duration(seconds: 3),
-        ),
-      );
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ?? 'Login failed'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       appBar: AppBar(),
       body: Center(
@@ -92,8 +81,14 @@ class _LoginPageState extends State<LoginPage> {
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
                     ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your email';
+                      }
+                      return null;
+                    },
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   TextFormField(
                     controller: passwordController,
                     decoration: const InputDecoration(
@@ -104,6 +99,12 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 20),
                   Container(
@@ -114,13 +115,15 @@ class _LoginPageState extends State<LoginPage> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: TextButton(
-                      onPressed: () async {
-                        await signInWithEmailAndPassword();
+                      onPressed: authProvider.isLoading ? null : () async {
+                        await signIn();
                       },
-                      child: Text(
-                        'LOGIN',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
+                      child: authProvider.isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'LOGIN',
+                              style: TextStyle(fontSize: 16, color: Colors.white),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 20),

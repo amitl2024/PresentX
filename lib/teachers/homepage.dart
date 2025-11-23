@@ -15,7 +15,7 @@ class TeacherHomePage extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      drawer: StudentDrawer(), // <-- Add StudentDrawer here
+      drawer: const StudentDrawer(), // <-- Add StudentDrawer here
       body: Column(
         children: [
           const SizedBox(height: 30),

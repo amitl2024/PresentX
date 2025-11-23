@@ -1,9 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:present_x/student/home.dart';
+import 'package:provider/provider.dart';
+import 'package:present_x/providers/auth_provider.dart';
 import 'package:present_x/login_page.dart';
-import 'package:present_x/teachers/homepage.dart';
 
 class SignUpPage extends StatefulWidget {
   static route() => MaterialPageRoute(builder: (context) => const SignUpPage());
@@ -40,69 +38,42 @@ class _SignUpPageState extends State<SignUpPage> {
     super.dispose();
   }
 
-  Future<void> createUserWithEmailAndPassword() async {
-    try {
-      final userCredential = await FirebaseAuth.instance
-          .createUserWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
-          );
-      final uid = userCredential.user!.uid;
+  Future<void> signUp() async {
+    if (!formKey.currentState!.validate()) return;
 
-      await FirebaseFirestore.instance
-          .collection('departments')
-          .doc(selectedDept!.toLowerCase())
-          .collection('classes')
-          .doc(selectedClass)
-          .collection('students')
-          .doc(uid)
-          .set({
-            'name': nameController.text.trim(),
-            'role': role,
-            'class': selectedClass,
-            'department': selectedDept,
-            'email': emailController.text.trim(),
-            if (role == 'student') 'prn': prnController.text.trim(),
-          });
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.signUp(
+      email: emailController.text.trim(),
+      password: passwordController.text.trim(),
+      name: nameController.text.trim(),
+      role: role,
+      department: selectedDept,
+      className: selectedClass,
+      prn: role == 'student' ? prnController.text.trim() : null,
+    );
 
-      await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'name': nameController.text.trim(),
-        'role': role,
-        'class': selectedClass,
-        'department': selectedDept,
-        'email': emailController.text.trim(),
-        if (role == 'student') 'prn': prnController.text.trim(),
-      });
-
-      await FirebaseFirestore.instance
-          .collection('departments')
-          .doc(selectedDept!.toLowerCase())
-          .set({'name': selectedDept}, SetOptions(merge: true));
-
-      // Ensure class document exists under department
-      await FirebaseFirestore.instance
-          .collection('departments')
-          .doc(selectedDept!.toLowerCase())
-          .collection('classes')
-          .doc(selectedClass)
-          .set({'name': selectedClass}, SetOptions(merge: true));
-
-      if (role == 'teacher') {
-        Navigator.pushReplacementNamed(context, '/teacherHome');
-      } else {
-        Navigator.pushReplacementNamed(context, '/home');
+    if (success) {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/');
       }
-    } on FirebaseAuthException catch (e) {
-      print(e.message);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(e.message ?? 'Signup failed')));
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authProvider.errorMessage ?? 'Signup failed'),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
@@ -129,6 +100,12 @@ class _SignUpPageState extends State<SignUpPage> {
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
                     ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a username';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 15),
                   TextFormField(
@@ -140,8 +117,17 @@ class _SignUpPageState extends State<SignUpPage> {
                       ),
                     ),
                     obscureText: true,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter a password';
+                      }
+                      if (value.length < 6) {
+                        return 'Password must be at least 6 characters';
+                      }
+                      return null;
+                    },
                   ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   TextFormField(
                     controller: nameController,
                     decoration: const InputDecoration(
@@ -150,6 +136,12 @@ class _SignUpPageState extends State<SignUpPage> {
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
                     ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your name';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 15),
                   DropdownButtonFormField<String>(
@@ -175,6 +167,12 @@ class _SignUpPageState extends State<SignUpPage> {
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
                     ),
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Please select a department';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 15),
                   DropdownButtonFormField<String>(
@@ -201,6 +199,12 @@ class _SignUpPageState extends State<SignUpPage> {
                         borderRadius: BorderRadius.all(Radius.circular(10)),
                       ),
                     ),
+                    validator: (value) {
+                      if (value == null) {
+                        return 'Please select a class';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: 15),
                   DropdownButtonFormField<String>(
@@ -238,6 +242,12 @@ class _SignUpPageState extends State<SignUpPage> {
                           borderRadius: BorderRadius.all(Radius.circular(10)),
                         ),
                       ),
+                      validator: (value) {
+                        if (role == 'student' && (value == null || value.isEmpty)) {
+                          return 'Please enter PRN number';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 15),
                   ],
@@ -252,13 +262,15 @@ class _SignUpPageState extends State<SignUpPage> {
                     ),
 
                     child: TextButton(
-                      onPressed: () async {
-                        await createUserWithEmailAndPassword();
+                      onPressed: authProvider.isLoading ? null : () async {
+                        await signUp();
                       },
-                      child: Text(
-                        'SIGN UP',
-                        style: TextStyle(fontSize: 16, color: Colors.white),
-                      ),
+                      child: authProvider.isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : const Text(
+                              'SIGN UP',
+                              style: TextStyle(fontSize: 16, color: Colors.white),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 20),

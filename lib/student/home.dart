@@ -1,12 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:present_x/login_page.dart';
+import 'package:provider/provider.dart';
+import 'package:present_x/providers/auth_provider.dart';
 import 'package:present_x/student/assign.dart';
 import 'package:present_x/student/attenStu.dart';
 import 'package:present_x/student/events.dart';
 import 'package:present_x/student/marks.dart';
-import 'package:present_x/student/profile.dart';
 import 'package:present_x/student/syllabus.dart';
 import 'package:present_x/student/timetabel.dart';
 import 'package:present_x/utils/transition.dart';
@@ -21,32 +19,6 @@ class Homeview extends StatefulWidget {
 }
 
 class _HomeviewState extends State<Homeview> {
-  Future<String?> getUserName() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    final doc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-    return doc.data()?['name'] ?? 'User';
-  }
-
-  Future<void> signOutUser() async {
-    await FirebaseAuth.instance.signOut();
-  }
-
-  Future<Map<String, dynamic>?> getUserInfo() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    final doc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-    return doc.data();
-  }
-
   // Example events/notifications list (replace with Firestore data later)
   final List<Map<String, String>> events = [
     {
@@ -66,6 +38,8 @@ class _HomeviewState extends State<Homeview> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       backgroundColor: const Color(0xFFE3F2FD),
       appBar: AppBar(
@@ -89,7 +63,7 @@ class _HomeviewState extends State<Homeview> {
           ),
         ],
       ),
-      drawer: StudentDrawer(getUserName: getUserName),
+      drawer: const StudentDrawer(),
       body: Column(
         children: [
           Container(
@@ -108,10 +82,10 @@ class _HomeviewState extends State<Homeview> {
                   ),
                 ),
                 const SizedBox(width: 20),
-                FutureBuilder<String?>(
-                  future: getUserName(),
+                FutureBuilder<Map<String, dynamic>?>(
+                  future: authProvider.getUserData(),
                   builder: (context, snapshot) {
-                    final name = snapshot.data ?? "User";
+                    final name = snapshot.data?['name'] ?? "User";
                     return Text(
                       "Welcome, $name!",
                       style: const TextStyle(

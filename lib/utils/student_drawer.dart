@@ -1,101 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:present_x/login_page.dart';
+import 'package:provider/provider.dart';
+import 'package:present_x/providers/auth_provider.dart';
 import 'package:present_x/student/profile.dart';
 import 'package:present_x/utils/transition.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StudentDrawer extends StatelessWidget {
-  final String? name;
-  final Future<String?> Function()? getUserName;
-
-  const StudentDrawer({super.key, this.name, this.getUserName});
+  const StudentDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final user = authProvider.user;
+    // We might need to fetch the name if it's not in the User object (User object has displayName but we store it in Firestore)
+    // However, AuthProvider currently only fetches role. Let's update AuthProvider to fetch user data or at least name.
+    // For now, let's assume we can get it or we will update AuthProvider.
+    
+    // Actually, let's check AuthProvider again. It only fetches role. 
+    // I should probably update AuthProvider to fetch the full user profile or at least the name.
+    // But for this step, I will use a FutureBuilder with a method from AuthProvider if I add one, 
+    // or better, let's update AuthProvider first to fetch user data.
+    
     return Drawer(
       backgroundColor: Colors.black,
       child: Column(
         children: [
-          FutureBuilder<String?>(
-            future: getUserName != null ? getUserName!() : Future.value(name),
-            builder: (context, snapshot) {
-              final displayName = snapshot.data ?? "User";
-              // Fetch role from FirebaseAuth user claims or Firestore if needed
-              return FutureBuilder<String>(
-                future: _getUserRole(),
-                builder: (context, roleSnapshot) {
-                  final role = roleSnapshot.data ?? "student";
-                  return Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                    ),
-                    child: DrawerHeader(
-                      margin: EdgeInsets.zero,
-                      padding: EdgeInsets.zero,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Stack(
-                            alignment: Alignment.bottomRight,
-                            children: [
-                              CircleAvatar(
-                                radius: 40,
-                                backgroundImage: const AssetImage(
-                                  'assets/images/profileicon.jpg',
-                                ),
-                                backgroundColor: Colors.white,
-                              ),
-                              Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.blue,
-                                    width: 2,
-                                  ),
-                                ),
-                                padding: const EdgeInsets.all(3),
-                                child: const Icon(
-                                  Icons.verified,
-                                  color: Colors.blue,
-                                  size: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            displayName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.1,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            role == "teacher" ? "Teacher" : "Student",
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+          _buildHeader(context, authProvider),
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
@@ -142,8 +71,13 @@ class StudentDrawer extends StatelessWidget {
                   iconColor: Colors.redAccent,
                   textColor: Colors.redAccent,
                   onTap: () async {
-                    await FirebaseAuth.instance.signOut();
-                    Navigator.push(context, LoginPage.route());
+                    await authProvider.signOut();
+                    // Navigation to login is handled by AuthWrapper in main.dart
+                    // But since we are in a drawer, we might need to pop or just let the stream handle it.
+                    // The AuthWrapper is at the root. If we sign out, the stream updates, and AuthWrapper shows SignUpPage (or Login).
+                    // However, we are currently pushed onto the stack.
+                    // We should probably pop everything until first route.
+                    Navigator.of(context).popUntil((route) => route.isFirst);
                   },
                 ),
               ],
@@ -158,6 +92,84 @@ class StudentDrawer extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, AuthProvider authProvider) {
+    return FutureBuilder<Map<String, dynamic>?>(
+      future: authProvider.getUserData(), // We need to add this method to AuthProvider
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final name = data?['name'] ?? "User";
+        final role = authProvider.role ?? "student";
+
+        return Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF1976D2), Color(0xFF42A5F5)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: DrawerHeader(
+            margin: EdgeInsets.zero,
+            padding: EdgeInsets.zero,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundImage: const AssetImage(
+                        'assets/images/profileicon.jpg',
+                      ),
+                      backgroundColor: Colors.white,
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.blue,
+                          width: 2,
+                        ),
+                      ),
+                      padding: const EdgeInsets.all(3),
+                      child: const Icon(
+                        Icons.verified,
+                        color: Colors.blue,
+                        size: 18,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  role == "teacher" ? "Teacher" : "Student",
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -182,16 +194,5 @@ class StudentDrawer extends StatelessWidget {
       hoverColor: Colors.blue.withOpacity(0.08),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
     );
-  }
-
-  Future<String> _getUserRole() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return "student";
-    final doc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-    return doc.data()?['role'] ?? "student";
   }
 }

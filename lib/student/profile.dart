@@ -4,6 +4,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:provider/provider.dart';
+import 'package:present_x/providers/auth_provider.dart';
+
 class ProfilePage extends StatefulWidget {
   static route() =>
       MaterialPageRoute(builder: (context) => const ProfilePage());
@@ -14,16 +17,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  Future<Map<String, dynamic>?> getUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
-    final doc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-    return doc.data();
-  }
 
   Future<String?> uploadProfileImage() async {
     final picker = ImagePicker();
@@ -52,6 +45,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
     final size = MediaQuery.of(context).size;
     final isWide = size.width > 500;
 
@@ -65,7 +59,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       body: SafeArea(
         child: FutureBuilder<Map<String, dynamic>?>(
-          future: getUserData(),
+          future: authProvider.getUserData(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
