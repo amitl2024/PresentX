@@ -124,3 +124,4 @@ MIT License. See `LICENSE` for details.
 
 ## Contact
 Questions or feedback? Email: nexus.appsin@gmail.com
+Collaborated by Sai Narendra Yargattikar
